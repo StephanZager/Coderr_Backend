@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate
 
 class RegistrationSerializer(serializers.ModelSerializer):
     repeated_password = serializers.CharField(write_only=True)
+    username = serializers.CharField() 
     type = serializers.ChoiceField(choices=[('customer', 'Customer'), ('business', 'Business')], write_only=True)
     
     TYPE_CHOICES = [
@@ -41,25 +42,25 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 {'error': 'A user with this email already exists'}
             )
 
-        # Check if a user with the given username already exists.
-        if User.objects.filter(username=data['username']).exists():
-            raise serializers.ValidationError(
-                {'error': 'A user with this username already exists'}
-            )
+        # We don't check for username uniqueness here since we'll create a unique username
+        # from the email address to avoid conflicts with Django's username constraints
 
         return data
 
     def create(self, validated_data):
         """
         Create and return a new User instance, after removing the repeated_password and type fields.
-        Splits the username into first and last name if possible, otherwise sets only the first name.
-        Returns a dictionary with token, username, email, and user_id as specified in the API documentation.
+        Uses email as username (which is Django-compliant) and stores the full name in first_name and last_name fields.
         """
         # Remove fields that are not needed for user creation
         validated_data.pop('repeated_password')
         user_type = validated_data.pop('type')  # Remove type field
         
-        full_name = validated_data.get('username')
+        full_name = validated_data.pop('username')  # Get the full name from username field
+        email = validated_data['email']
+        
+        # Use email as Django username to avoid conflicts
+        validated_data['username'] = email
         
         # Create the user with the remaining validated data
         user = User.objects.create_user(**validated_data)
@@ -70,19 +71,40 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 first_name, last_name = full_name.split(' ', 1)
                 user.first_name = first_name
                 user.last_name = last_name
-                user.save(update_fields=['first_name', 'last_name'])
             except ValueError:
                 # If splitting fails, set the entire name as first name
                 user.first_name = full_name
-                user.save(update_fields=['first_name'])
+                user.last_name = ''
+            
+            user.save(update_fields=['first_name', 'last_name'])
 
-        # Create or get token for the user
-        token, created = Token.objects.get_or_create(user=user)
+        # Store the full name in a custom attribute for the view to access
+        user.full_name = full_name
+        return user
         
-        # Return the response data as specified in the API documentation
-        return {
-            'token': token.key,
-            'username': user.username,
-            'email': user.email,
-            'user_id': user.id
-        }
+class EmailAuthTokenSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        """
+        Validate the provided email and password.
+        Checks if a user with the given email exists and if the password is correct.
+        If valid, adds the user instance to the validated data.
+        """
+        email = data.get('email')
+        password = data.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(
+                "Benutzer mit dieser Email existiert nicht")
+
+        user = authenticate(username=user.username, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Ungültige Anmeldedaten.")
+
+        data['user'] = user
+        return data        
