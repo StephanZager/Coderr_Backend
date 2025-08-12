@@ -42,3 +42,20 @@ class ProfileSerializer(serializers.ModelSerializer):
             'email',
             'created_at',
         ]
+
+
+class ProfilesSerializer(ProfileSerializer):
+
+    class Meta:
+        model = Profile
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'location',
+            'tel',
+            'description',
+            'working_hours',
+            'type',
+        ]
