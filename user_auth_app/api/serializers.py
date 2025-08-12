@@ -73,11 +73,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
             try:
                 # Try to split the full name into first and last name
                 first_name, last_name = full_name.split(' ', 1)
-                user.first_name = first_name
-                user.last_name = last_name
+                user.first_name = first_name.capitalize()
+                user.last_name = last_name.capitalize()
             except ValueError:
                 # If splitting fails, set the entire name as first name
-                user.first_name = full_name
+                user.first_name = full_name.capitalize()
                 user.last_name = ''
             
             user.save(update_fields=['first_name', 'last_name'])
