@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
+from user_profile.models import Profile
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -65,6 +66,9 @@ class RegistrationSerializer(serializers.ModelSerializer):
         # Create the user with the remaining validated data
         user = User.objects.create_user(**validated_data)
 
+        # Profil für den neuen User anlegen und type setzen
+        Profile.objects.create(user=user, type=user_type)
+
         if full_name:
             try:
                 # Try to split the full name into first and last name
@@ -101,10 +105,11 @@ class EmailAuthTokenSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Benutzer mit dieser Email existiert nicht")
 
-        user = authenticate(username=user.username, password=password)
+        # Verwende die E-Mail als Username für authenticate
+        user = authenticate(username=email, password=password)
 
         if not user:
             raise serializers.ValidationError("Ungültige Anmeldedaten.")
 
         data['user'] = user
-        return data        
+        return data
