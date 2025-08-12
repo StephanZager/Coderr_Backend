@@ -7,12 +7,15 @@ from rest_framework.exceptions import ValidationError, NotFound
 from django.contrib.auth.models import User
 from user_profile.models import Profile
 from user_profile.api.serializers import ProfileSerializer
+from .permissions import IsOwner
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_object(self):
         user_id = self.kwargs.get('user_id')
-        return get_object_or_404(Profile, user__id=user_id)
+        obj = get_object_or_404(Profile, user__id=user_id)
+        self.check_object_permissions(self.request, obj)
+        return obj
