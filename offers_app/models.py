@@ -1,8 +1,10 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Offer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='offers', null=True, blank=True)
     title = models.CharField(max_length=25, default='', blank=True)
-    image = models.ImageField(upload_to='offer_images/', null=True, blank=True)  # Bildfeld ergänzen
+    image = models.ImageField(upload_to='offer_images/', null=True, blank=True)
     description = models.TextField(max_length=255, default='', blank=True)
 
 class OfferDetail(models.Model):

@@ -80,6 +80,6 @@ class OfferSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        # Entferne 'user' aus validated_data, falls vorhanden
-        validated_data.pop('user', None)
+        # User wird jetzt korrekt aus validated_data übernommen
         return Offer.objects.create(**validated_data)
+        
