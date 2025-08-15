@@ -22,3 +22,7 @@ class IsBusinessUser(BasePermission):
             self.message = "Nur Business-Profile dürfen Angebote erstellen."
             return False
         return True
+
+class IsOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user

@@ -3,10 +3,14 @@ from rest_framework import generics, filters, status
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Min
-from .serializers import OfferDetailSerializer, OfferSerializer, OfferListSerializer
+from .serializers import (
+    OfferDetailSerializer, OfferSerializer, OfferListSerializer,
+    OfferRetrieveSerializer, OfferUpdateSerializer
+)
 from ..models import Offer, OfferDetail
 from django.contrib.auth.models import User
-from .permissions import IsBusinessUser
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsBusinessUser, IsOwner
 
 class OfferPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
@@ -19,13 +23,11 @@ class OfferView(generics.ListCreateAPIView):
     ordering_fields = ['updated_at', 'min_price']
 
     def get_permissions(self):
-        # Nur für POST (erstellen) die Business-Permission, für GET keine Permission
         if self.request.method == 'POST':
             return [IsBusinessUser()]
         return []
 
     def get_serializer_class(self):
-        # Nutze für GET den neuen OfferListSerializer und für POST weiterhin den bisherigen Serializer
         if self.request.method == 'GET':
             return OfferListSerializer
         return OfferSerializer
@@ -69,14 +71,12 @@ class OfferView(generics.ListCreateAPIView):
             details = offer.details.all()
             min_price = details.aggregate(Min('price'))['price__min'] if details else None
             min_delivery_time = details.aggregate(Min('delivery_time_in_days'))['delivery_time_in_days__min'] if details else None
-            # Hole den User direkt aus offer.user (ForeignKey muss im Modell existieren!)
             user = offer.user if hasattr(offer, 'user') and offer.user is not None else None
             user_details = {
                 "first_name": user.first_name if user else "",
                 "last_name": user.last_name if user else "",
                 "username": user.username if user else "",
             }
-            # created_at und updated_at direkt aus dem Offer-Objekt holen
             created_at = offer.created_at if hasattr(offer, 'created_at') else None
             updated_at = offer.updated_at if hasattr(offer, 'updated_at') else None
             results.append({
@@ -95,3 +95,19 @@ class OfferView(generics.ListCreateAPIView):
         if page is not None:
             return self.get_paginated_response(results)
         return Response(results)
+
+class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Offer.objects.all()
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return OfferRetrieveSerializer
+        if self.request.method in ['PATCH', 'PUT']:
+            return OfferUpdateSerializer
+        return OfferRetrieveSerializer
+
+class OfferDetailObjView(generics.RetrieveAPIView):
+    queryset = OfferDetail.objects.all()
+    serializer_class = OfferDetailSerializer
+    permission_classes = [IsAuthenticated]
