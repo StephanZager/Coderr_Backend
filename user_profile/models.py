@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib import admin
 
 # Create your models here.
 class Profile(models.Model):
@@ -10,3 +11,5 @@ class Profile(models.Model):
     tel = models.CharField(max_length=15, default='', blank=True)
     description= models.TextField(max_length=255, default='', blank=True)
     working_hours = models.CharField(max_length=20, default='', blank=True)
+
+admin.site.register(Profile)
