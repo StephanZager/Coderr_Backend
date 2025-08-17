@@ -12,8 +12,9 @@ from .permissions import IsBusinessUser, IsOwner
 
 
 class OfferPagination(PageNumberPagination):
+    page_size= 5
     page_size_query_param = 'page_size'
-
+    max_page_size= 100
 
 class OfferView(generics.ListCreateAPIView):
     queryset = Offer.objects.all()
@@ -42,10 +43,7 @@ class OfferView(generics.ListCreateAPIView):
         response_serializer = OfferSerializer(offer)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+   
 
 
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
