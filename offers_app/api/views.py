@@ -1,5 +1,6 @@
+
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from .serializers import (
@@ -9,6 +10,7 @@ from .serializers import (
 from ..models import Offer, OfferDetail
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsBusinessUser, IsOwner
+from django_filters.rest_framework import DjangoFilterBackend,Filter
 
 
 class OfferPagination(PageNumberPagination):
@@ -18,7 +20,10 @@ class OfferPagination(PageNumberPagination):
 
 class OfferView(generics.ListCreateAPIView):
     queryset = Offer.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'description']
     pagination_class = OfferPagination
+    
 
     def get_permissions(self):
         if self.request.method == 'POST':
