@@ -20,8 +20,13 @@ class OfferPagination(PageNumberPagination):
 
 class OfferView(generics.ListCreateAPIView):
     queryset = Offer.objects.all()
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [
+        DjangoFilterBackend,      
+        filters.SearchFilter,     
+        filters.OrderingFilter   
+    ]
     search_fields = ['title', 'description']
+    ordering_fields = ['updated_at', 'price']
     pagination_class = OfferPagination
     
 
