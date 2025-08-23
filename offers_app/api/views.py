@@ -8,27 +8,29 @@ from .serializers import (
     OfferRetrieveSerializer, OfferUpdateSerializer
 )
 from ..models import Offer, OfferDetail
+from ..filters import OfferFilter
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsBusinessUser, IsOwner
-from django_filters.rest_framework import DjangoFilterBackend,Filter
+from django_filters.rest_framework import DjangoFilterBackend, Filter
 
 
 class OfferPagination(PageNumberPagination):
-    page_size= 5
+    page_size = 5
     page_size_query_param = 'page_size'
-    max_page_size= 100
+    max_page_size = 100
+
 
 class OfferView(generics.ListCreateAPIView):
     queryset = Offer.objects.all()
     filter_backends = [
-        DjangoFilterBackend,      
-        filters.SearchFilter,     
-        filters.OrderingFilter   
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter
     ]
+    filterset_class = OfferFilter
     search_fields = ['title', 'description']
     ordering_fields = ['updated_at', 'price']
     pagination_class = OfferPagination
-    
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -52,8 +54,6 @@ class OfferView(generics.ListCreateAPIView):
             OfferDetail.objects.create(offer=offer, **detail)
         response_serializer = OfferSerializer(offer)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
-   
 
 
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
