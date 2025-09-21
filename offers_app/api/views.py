@@ -9,7 +9,7 @@ from .serializers import (
 )
 from ..models import Offer, OfferDetail
 from ..filters import OfferFilter
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .permissions import IsBusinessUser, IsOwner
 from django_filters.rest_framework import DjangoFilterBackend, Filter
 
@@ -35,7 +35,7 @@ class OfferView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'POST':
             return [IsBusinessUser()]
-        return []
+        return [IsAuthenticatedOrReadOnly()]
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -58,7 +58,6 @@ class OfferView(generics.ListCreateAPIView):
 
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Offer.objects.all()
-    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -66,7 +65,11 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PATCH', 'PUT']:
             return OfferUpdateSerializer
         return OfferRetrieveSerializer
-
+    
+    def get_permissions(self):
+        if self.request.method in ['PATCH', 'PUT', 'DELETE']:
+            return [IsAuthenticated(), IsOwner()]
+        return [IsAuthenticated()]
 
 class OfferDetailObjView(generics.RetrieveAPIView):
     queryset = OfferDetail.objects.all()
