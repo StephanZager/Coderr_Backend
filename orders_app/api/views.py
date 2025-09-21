@@ -1,6 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import NotFound  # <-- Hinzugefügt
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from orders_app.models import Order
@@ -38,7 +39,7 @@ class OrderListView(generics.ListCreateAPIView):
         try:
             offer_detail = OfferDetail.objects.get(id=offer_detail_id)
         except OfferDetail.DoesNotExist:
-            return Response({"error": "Das angegebene Angebotsdetail wurde nicht gefunden."}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound(detail="Das angegebene Angebotsdetail wurde nicht gefunden.")
 
         if not offer_detail.offer.user:
             return Response({"error": "Das Angebot hat keinen zugehörigen Business-Nutzer."}, status=status.HTTP_400_BAD_REQUEST)
@@ -83,7 +84,7 @@ class OrderCountView(generics.RetrieveAPIView):
         try:
             user = Profile.objects.get(user__id=user_id, type='business').user
         except Profile.DoesNotExist:
-            raise status.HTTP_404_NOT_FOUND("Kein Geschäftsnutzer mit der angegebenen ID gefunden.")
+            raise NotFound("Kein Geschäftsnutzer mit der angegebenen ID gefunden.") # <-- Korrigiert
         
         order_count = Order.objects.filter(business_user=user, status='in_progress').count()
         return {'order_count': order_count}
@@ -100,7 +101,7 @@ class CompletedOrderCountView(generics.RetrieveAPIView):
         try:
             user = Profile.objects.get(user__id=user_id, type='business').user
         except Profile.DoesNotExist:
-            raise status.HTTP_404_NOT_FOUND("Kein Geschäftsnutzer mit der angegebenen ID gefunden.")
+            raise NotFound("Kein Geschäftsnutzer mit der angegebenen ID gefunden.") # <-- Korrigiert
         
         completed_order_count = Order.objects.filter(business_user=user, status='completed').count()
         return {'completed_order_count': completed_order_count}

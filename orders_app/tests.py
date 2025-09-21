@@ -11,21 +11,21 @@ class OrderTests(APITestCase):
     def setUp(self):
         # Erstelle einen Kunden-Benutzer und ein Profil
         self.customer_user = User.objects.create_user(
-            username='customer@example.com', email='customer@example.com', password='password123'
+            username='customer@example.com', email='customer@example.com', password='testpassword'
         )
         self.customer_profile = Profile.objects.create(
             user=self.customer_user, type='customer'
         )
-        self.customer_token = self.get_auth_token(self.customer_user, 'password123')
+        self.customer_token = self.get_auth_token(self.customer_user, 'testpassword')
 
         # Erstelle einen Business-Benutzer und ein Profil
         self.business_user = User.objects.create_user(
-            username='business@example.com', email='business@example.com', password='password123'
+            username='business@example.com', email='business@example.com', password='testpassword'
         )
         self.business_profile = Profile.objects.create(
             user=self.business_user, type='business'
         )
-        self.business_token = self.get_auth_token(self.business_user, 'password123')
+        self.business_token = self.get_auth_token(self.business_user, 'testpassword')
 
         # Erstelle einen Admin-Benutzer
         self.admin_user = User.objects.create_superuser(
@@ -61,16 +61,41 @@ class OrderTests(APITestCase):
         )
 
     def get_auth_token(self, user, password):
-        # Authentifizierung und Login
+        # Hilfsmethode zur Anmeldung und zum Abrufen des Tokens
         response = self.client.post(reverse('login'), {'email': user.email, 'password': password})
-        # Sicherstellen, dass die Anmeldung erfolgreich war, bevor der Token zurückgegeben wird
         if response.status_code != status.HTTP_200_OK:
-            # Wenn die Anmeldung fehlschlägt, den Fehler ausgeben, um die Ursache zu finden
             raise Exception(f"Fehler bei der Anmeldung für Benutzer {user.email}: {response.content.decode()}")
         return response.data['token']
 
-    def tearDown(self):
-        self.client.logout()
+# --- Testfälle für GET /api/orders/ ---
+
+    def test_authenticated_user_can_list_their_orders_as_customer(self):
+        """
+        Stellt sicher, dass ein Kunden-Benutzer seine eigenen Bestellungen sehen kann.
+        """
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
+        response = self.client.get(reverse('order-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.order.id)
+
+    def test_authenticated_user_can_list_their_orders_as_business_user(self):
+        """
+        Stellt sicher, dass ein Business-Benutzer Bestellungen sehen kann, bei denen er der Geschäftspartner ist.
+        """
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
+        response = self.client.get(reverse('order-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.order.id)
+
+    def test_unauthenticated_cannot_list_orders(self):
+        """
+        Stellt sicher, dass ein nicht authentifizierter Benutzer keine Bestellliste abrufen kann.
+        """
+        self.client.credentials()
+        response = self.client.get(reverse('order-list'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 # --- Testfälle für POST /api/orders/ ---
 
@@ -112,37 +137,7 @@ class OrderTests(APITestCase):
         data = {'offer_detail_id': 9999}
         response = self.client.post(reverse('order-list'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data['error'], 'Das angegebene Angebotsdetail wurde nicht gefunden.')
-
-# --- Testfälle für GET /api/orders/ ---
-
-    def test_get_customer_orders(self):
-        """
-        Stellt sicher, dass ein Kunden-Benutzer seine eigenen Bestellungen sehen kann.
-        """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
-        response = self.client.get(reverse('order-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['id'], self.order.id)
-
-    def test_get_business_orders(self):
-        """
-        Stellt sicher, dass ein Business-Benutzer Bestellungen sehen kann, bei denen er der Geschäftspartner ist.
-        """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
-        response = self.client.get(reverse('order-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['id'], self.order.id)
-
-    def test_unauthenticated_cannot_get_orders(self):
-        """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer keine Bestellliste abrufen kann.
-        """
-        self.client.credentials()
-        response = self.client.get(reverse('order-list'))
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data['detail'], 'Das angegebene Angebotsdetail wurde nicht gefunden.')
 
 # --- Testfälle für PATCH /api/orders/{id}/ ---
 
@@ -165,7 +160,7 @@ class OrderTests(APITestCase):
         data = {'status': 'completed'}
         response = self.client.patch(reverse('order-detail', kwargs={'pk': self.order.id}), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data['detail'], 'Sie haben keine Berechtigung, diese Aktion durchzuführen.')
+        self.assertEqual(response.data['detail'], 'Nur Business-Profile dürfen den Status einer Bestellung ändern.') # <-- Korrigiert
 
     def test_unauthenticated_cannot_update_order(self):
         """
@@ -207,7 +202,7 @@ class OrderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['order_count'], 2)
 
-    def test_get_order_count_for_non_existent_user(self):
+    def test_get_order_count_for_non_existent_business_user(self):
         """
         Stellt sicher, dass eine Anfrage mit einer ungültigen ID einen 404-Fehler zurückgibt.
         """
@@ -227,7 +222,7 @@ class OrderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['completed_order_count'], 1)
 
-    def test_get_completed_order_count_for_non_existent_user(self):
+    def test_get_completed_order_count_for_non_existent_business_user(self):
         """
         Stellt sicher, dass eine Anfrage mit einer ungültigen ID einen 404-Fehler zurückgibt.
         """
