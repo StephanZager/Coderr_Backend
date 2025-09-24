@@ -5,25 +5,24 @@ from django.db.models import Count, Avg
 from offers_app.models import Offer
 from user_profile.models import Profile
 from reviews_app.models import Review
-
+from rest_framework.permissions import AllowAny
 
 class BaseInfoView(APIView):
     """
     Ruft allgemeine Basisinformationen zur Plattform ab.
     """
+    permission_classes = [AllowAny]
+    authentication_classes = [] # <-- Fügen Sie diese Zeile hinzu, um die Authentifizierung zu deaktivieren
+    
     def get(self, request):
         try:
-            # Anzahl der Bewertungen
             review_count = Review.objects.count()
             
-            # Durchschnittliche Bewertung
             average_rating_data = Review.objects.aggregate(avg_rating=Avg('rating'))
             average_rating = round(average_rating_data.get('avg_rating', 0), 1) if average_rating_data.get('avg_rating') is not None else 0.0
 
-            # Anzahl der Geschäftsnutzer
             business_profile_count = Profile.objects.filter(type='business').count()
 
-            # Anzahl der Angebote
             offer_count = Offer.objects.count()
 
             data = {

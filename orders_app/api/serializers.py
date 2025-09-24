@@ -10,8 +10,8 @@ class UserDetailsSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     offer_detail_id = serializers.IntegerField(write_only=True)
-    customer_user = UserDetailsSerializer(read_only=True)
-    business_user = UserDetailsSerializer(read_only=True)
+    customer_user = serializers.PrimaryKeyRelatedField(read_only=True) # <-- Geändert
+    business_user = serializers.PrimaryKeyRelatedField(read_only=True) # <-- Geändert
 
     class Meta:
         model = Order
@@ -50,8 +50,8 @@ class OrderUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 class OrderListSerializer(serializers.ModelSerializer):
-    customer_user = UserDetailsSerializer(read_only=True)
-    business_user = UserDetailsSerializer(read_only=True)
+    customer_user = serializers.PrimaryKeyRelatedField(read_only=True) # <-- Geändert
+    business_user = serializers.PrimaryKeyRelatedField(read_only=True) # <-- Geändert
     
     class Meta:
         model = Order

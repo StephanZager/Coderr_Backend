@@ -41,11 +41,9 @@ class RegistrationView(APIView):
 class LoginView(ObtainAuthToken):
     """
     API view for user login.
-
-    Handles POST requests to authenticate a user with email and password.
-    Uses a custom serializer to validate credentials and returns an auth token
-    and user data upon successful authentication.
+    ...
     """
+    permission_classes = [AllowAny] # <-- Diese Zeile wurde hinzugefügt
     serializer_class = EmailAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):
