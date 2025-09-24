@@ -39,6 +39,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'description',
             'working_hours',
             'type',
+            'file',
             'email',
             'created_at',
         ]
@@ -58,4 +59,5 @@ class ProfilesSerializer(ProfileSerializer):
             'description',
             'working_hours',
             'type',
+            'file',
         ]
