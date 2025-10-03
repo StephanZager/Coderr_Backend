@@ -34,18 +34,25 @@ class ProfileSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
-            'type',
+            'file',
             'location',
             'tel',
             'description',
             'working_hours',
-            'file',
+            'type',
             'email',
             'created_at',
         ]
 
 
-class ProfilesSerializer(ProfileSerializer):
+class CustomerSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+    uploaded_at = serializers.DateTimeField(source='user.date_joined', read_only=True)
+
+    def get_username(self, obj):
+        return f"{obj.user.first_name}_{obj.user.last_name}".lower()
 
     class Meta:
         model = Profile
@@ -54,10 +61,30 @@ class ProfilesSerializer(ProfileSerializer):
             'username',
             'first_name',
             'last_name',
+            'file',
+            'uploaded_at',
+            'type',
+        ]
+
+class BusinessSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
+    def get_username(self, obj):
+        return f"{obj.user.first_name}_{obj.user.last_name}".lower()
+
+    class Meta:
+        model = Profile
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'file',
             'location',
             'tel',
             'description',
             'working_hours',
             'type',
-            'file',
         ]

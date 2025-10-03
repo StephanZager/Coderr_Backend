@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError, NotFound
 from django.contrib.auth.models import User
 from user_profile.models import Profile
-from user_profile.api.serializers import ProfileSerializer, ProfilesSerializer
+from user_profile.api.serializers import ProfileSerializer, CustomerSerializer, BusinessSerializer
 from .permissions import IsOwner
 from rest_framework.generics import ListAPIView
 
@@ -23,10 +23,10 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     
 class BusinessApiListView(ListAPIView):
     queryset = Profile.objects.filter(type='business')
-    serializer_class = ProfilesSerializer
+    serializer_class = BusinessSerializer
     permission_classes = [IsAuthenticated]
     
 class CustomerApiListView(ListAPIView):
     queryset = Profile.objects.filter(type='customer')
-    serializer_class = ProfilesSerializer
+    serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
