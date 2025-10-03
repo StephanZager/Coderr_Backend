@@ -96,7 +96,7 @@ class OfferSerializer(serializers.ModelSerializer):
         model = Offer
         fields = [
             'id',
-            'user',
+            
             'title',
             'image',
             'description',
@@ -110,8 +110,7 @@ class OfferSerializer(serializers.ModelSerializer):
     class Meta:
         model = Offer
         fields = [
-            'id',
-            'user',
+            'id',      
             'title',
             'image',
             'description',
