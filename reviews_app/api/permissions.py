@@ -3,25 +3,25 @@ from user_profile.models import Profile
 
 class IsReviewer(permissions.BasePermission):
     """
-    Berechtigung, die nur dem Ersteller der Bewertung den Zugriff erlaubt.
+    Permission that only allows access to the creator of the review.
     """
     def has_object_permission(self, request, view, obj):
         return obj.reviewer == request.user
 
 class IsCustomerUser(permissions.BasePermission):
     """
-    Berechtigung, die nur dem Benutzer mit einem 'customer'-Profil das Erstellen einer Bewertung erlaubt.
+    Permission that only allows the user with a 'customer' profile to create a review.
     """
-    message = "Nur Kunden-Profile dürfen Bewertungen erstellen."
+    message = "Only customer profiles are allowed to create reviews."
 
     def has_permission(self, request, view):
         user = request.user
         if not user.is_authenticated:
-            self.message = "Nicht authentifiziert."
+            self.message = "Not authenticated."
             return False
         try:
             profile = user.profile
         except Profile.DoesNotExist:
-            self.message = "Kein Profil gefunden."
+            self.message = "No profile found."
             return False
         return profile.type == 'customer'

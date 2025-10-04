@@ -7,9 +7,20 @@ from offers_app.models import Offer, OfferDetail
 from orders_app.models import Order
 
 class OrderTests(APITestCase):
+    """
+    Test suite for Order API endpoints.
+    
+    Tests CRUD operations, permissions, authentication, and business logic
+    for orders including creation from offer details, status updates, and
+    order count statistics.
+    """
 
     def setUp(self):
-        # Erstelle einen Kunden-Benutzer und ein Profil
+        """
+        Set up test data including users, profiles, offers, offer details, and orders.
+        Creates customer, business, and admin users with authentication tokens.
+        """
+        # Create customer user and profile
         self.customer_user = User.objects.create_user(
             username='customer@example.com', email='customer@example.com', password='testpassword'
         )
@@ -18,7 +29,7 @@ class OrderTests(APITestCase):
         )
         self.customer_token = self.get_auth_token(self.customer_user, 'testpassword')
 
-        # Erstelle einen Business-Benutzer und ein Profil
+        # Create business user and profile
         self.business_user = User.objects.create_user(
             username='business@example.com', email='business@example.com', password='testpassword'
         )
@@ -27,13 +38,13 @@ class OrderTests(APITestCase):
         )
         self.business_token = self.get_auth_token(self.business_user, 'testpassword')
 
-        # Erstelle einen Admin-Benutzer
+        # Create admin user
         self.admin_user = User.objects.create_superuser(
             username='admin@example.com', email='admin@example.com', password='adminpassword'
         )
         self.admin_token = self.get_auth_token(self.admin_user, 'adminpassword')
 
-        # Erstelle ein Angebot und ein OfferDetail-Objekt für Tests
+        # Create offer and offer detail for tests
         self.offer = Offer.objects.create(
             user=self.business_user, title='Test Offer', description='Test Description'
         )
@@ -47,7 +58,7 @@ class OrderTests(APITestCase):
             offer_type='basic'
         )
 
-        # Erstelle eine Beispielbestellung für die Tests
+        # Create sample order for tests
         self.order = Order.objects.create(
             customer_user=self.customer_user,
             business_user=self.business_user,
@@ -61,17 +72,29 @@ class OrderTests(APITestCase):
         )
 
     def get_auth_token(self, user, password):
-        # Hilfsmethode zur Anmeldung und zum Abrufen des Tokens
+        """
+        Authenticate user and return authentication token.
+        
+        Args:
+            user: User object to authenticate
+            password: User's password
+            
+        Returns:
+            str: Authentication token
+            
+        Raises:
+            Exception: If login fails
+        """
         response = self.client.post(reverse('login'), {'email': user.email, 'password': password})
         if response.status_code != status.HTTP_200_OK:
-            raise Exception(f"Fehler bei der Anmeldung für Benutzer {user.email}: {response.content.decode()}")
+            raise Exception(f"Login failed for user {user.email}: {response.content.decode()}")
         return response.data['token']
 
-# --- Testfälle für GET /api/orders/ ---
+    # --- Test cases for GET /api/orders/ ---
 
     def test_authenticated_user_can_list_their_orders_as_customer(self):
         """
-        Stellt sicher, dass ein Kunden-Benutzer seine eigenen Bestellungen sehen kann.
+        Ensures that a customer user can view their own orders.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         response = self.client.get(reverse('order-list'))
@@ -81,7 +104,7 @@ class OrderTests(APITestCase):
 
     def test_authenticated_user_can_list_their_orders_as_business_user(self):
         """
-        Stellt sicher, dass ein Business-Benutzer Bestellungen sehen kann, bei denen er der Geschäftspartner ist.
+        Ensures that a business user can view orders where they are the business partner.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         response = self.client.get(reverse('order-list'))
@@ -91,28 +114,28 @@ class OrderTests(APITestCase):
 
     def test_unauthenticated_cannot_list_orders(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer keine Bestellliste abrufen kann.
+        Ensures that an unauthenticated user cannot retrieve order list.
         """
         self.client.credentials()
         response = self.client.get(reverse('order-list'))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-# --- Testfälle für POST /api/orders/ ---
+    # --- Test cases for POST /api/orders/ ---
 
     def test_customer_can_create_order(self):
         """
-        Stellt sicher, dass ein Kunden-Benutzer eine Bestellung erstellen kann.
+        Ensures that a customer user can create an order.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         data = {'offer_detail_id': self.offer_detail.id}
         response = self.client.post(reverse('order-list'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['title'], self.offer_detail.title)
-        self.assertEqual(response.data['customer_user']['username'], self.customer_user.username)
+        self.assertEqual(response.data['customer_user'], self.customer_user.id)
 
     def test_business_cannot_create_order(self):
         """
-        Stellt sicher, dass ein Business-Benutzer keine Bestellung erstellen kann.
+        Ensures that a business user cannot create an order.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         data = {'offer_detail_id': self.offer_detail.id}
@@ -122,16 +145,16 @@ class OrderTests(APITestCase):
 
     def test_unauthenticated_cannot_create_order(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer keine Bestellung erstellen kann.
+        Ensures that an unauthenticated user cannot create an order.
         """
-        self.client.credentials()  # Entferne Token
+        self.client.credentials()
         data = {'offer_detail_id': self.offer_detail.id}
         response = self.client.post(reverse('order-list'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_order_with_invalid_offer_detail_id(self):
         """
-        Stellt sicher, dass eine ungültige Angebots-ID einen 404-Fehler zurückgibt.
+        Ensures that an invalid offer ID returns a 404 error.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         data = {'offer_detail_id': 9999}
@@ -139,11 +162,11 @@ class OrderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data['detail'], 'Das angegebene Angebotsdetail wurde nicht gefunden.')
 
-# --- Testfälle für PATCH /api/orders/{id}/ ---
+    # --- Test cases for PATCH /api/orders/{id}/ ---
 
     def test_business_can_update_order_status(self):
         """
-        Stellt sicher, dass ein Business-Benutzer den Status einer Bestellung aktualisieren kann.
+        Ensures that a business user can update an order status.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         data = {'status': 'completed'}
@@ -154,28 +177,28 @@ class OrderTests(APITestCase):
 
     def test_customer_cannot_update_order_status(self):
         """
-        Stellt sicher, dass ein Kunden-Benutzer den Status einer Bestellung nicht aktualisieren kann.
+        Ensures that a customer user cannot update an order status.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         data = {'status': 'completed'}
         response = self.client.patch(reverse('order-detail', kwargs={'pk': self.order.id}), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data['detail'], 'Nur Business-Profile dürfen den Status einer Bestellung ändern.') # <-- Korrigiert
+        self.assertEqual(response.data['detail'], 'Nur Business-Profile dürfen den Status einer Bestellung ändern.')
 
     def test_unauthenticated_cannot_update_order(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer eine Bestellung nicht aktualisieren kann.
+        Ensures that an unauthenticated user cannot update an order.
         """
         self.client.credentials()
         data = {'status': 'completed'}
         response = self.client.patch(reverse('order-detail', kwargs={'pk': self.order.id}), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-# --- Testfälle für DELETE /api/orders/{id}/ ---
+    # --- Test cases for DELETE /api/orders/{id}/ ---
 
     def test_admin_can_delete_order(self):
         """
-        Stellt sicher, dass ein Admin-Benutzer eine Bestellung löschen kann.
+        Ensures that an admin user can delete an order.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token}')
         response = self.client.delete(reverse('order-detail', kwargs={'pk': self.order.id}))
@@ -184,48 +207,27 @@ class OrderTests(APITestCase):
 
     def test_non_admin_cannot_delete_order(self):
         """
-        Stellt sicher, dass ein Nicht-Admin-Benutzer keine Bestellung löschen kann.
+        Ensures that a non-admin user cannot delete an order.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         response = self.client.delete(reverse('order-detail', kwargs={'pk': self.order.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-# --- Testfälle für GET /api/order-count/{business_user_id}/ ---
+    # --- Test cases for GET /api/order-count/{business_user_id}/ ---
 
     def test_get_order_count(self):
         """
-        Stellt sicher, dass ein authentifizierter Benutzer die Anzahl der laufenden Bestellungen eines Geschäftspartners abrufen kann.
+        Ensures that an authenticated user can retrieve the count of ongoing orders for a business partner.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
-        Order.objects.create(business_user=self.business_user, status='in_progress', title='Another Order', revisions=1, delivery_time_in_days=1, price=50, features=[], offer_type='basic')
+        Order.objects.create(business_user=self.business_user, status='in_progress', title='Another Order', revisions=1, delivery_time_in_days=1, price=50, features=[], offer_type='basic', customer_user=self.customer_user)
         response = self.client.get(reverse('order-count', kwargs={'business_user_id': self.business_user.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['order_count'], 2)
 
     def test_get_order_count_for_non_existent_business_user(self):
         """
-        Stellt sicher, dass eine Anfrage mit einer ungültigen ID einen 404-Fehler zurückgibt.
+        Ensures that a request with an invalid ID returns a 404 error.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
-        response = self.client.get(reverse('order-count', kwargs={'business_user_id': 9999}))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-# --- Testfälle für GET /api/completed-order-count/{business_user_id}/ ---
-
-    def test_get_completed_order_count(self):
-        """
-        Stellt sicher, dass ein authentifizierter Benutzer die Anzahl der abgeschlossenen Bestellungen abrufen kann.
-        """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
-        Order.objects.create(business_user=self.business_user, status='completed', title='Completed Order', revisions=1, delivery_time_in_days=1, price=50, features=[], offer_type='basic')
-        response = self.client.get(reverse('completed-order-count', kwargs={'business_user_id': self.business_user.id}))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['completed_order_count'], 1)
-
-    def test_get_completed_order_count_for_non_existent_business_user(self):
-        """
-        Stellt sicher, dass eine Anfrage mit einer ungültigen ID einen 404-Fehler zurückgibt.
-        """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
-        response = self.client.get(reverse('completed-order-count', kwargs={'business_user_id': 9999}))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = self.client

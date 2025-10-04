@@ -1,27 +1,29 @@
 from rest_framework.permissions import BasePermission
 
+
 class IsBusinessUser(BasePermission):
     """
-    Erlaubt nur User mit Profile.type == 'business' das Erstellen von Angeboten.
-    Gibt passende Fehlermeldungen zurück.
+    Only allows users with Profile.type == 'business' to create offers.
+    Returns appropriate error messages.
     """
 
-    message = "Nur Business-Profile dürfen Angebote erstellen."
+    message = "Only business profiles are allowed to create offers."
 
     def has_permission(self, request, view):
         user = request.user
         if not user.is_authenticated:
-            self.message = "Nicht authentifiziert."
+            self.message = "Not authenticated."
             return False
         try:
             profile = user.profile
         except AttributeError:
-            self.message = "Kein Profil gefunden."
+            self.message = "No profile found."
             return False
         if profile.type != 'business':
-            self.message = "Nur Business-Profile dürfen Angebote erstellen."
+            self.message = "Only business profiles are allowed to create offers."
             return False
         return True
+
 
 class IsOwner(BasePermission):
     def has_object_permission(self, request, view, obj):

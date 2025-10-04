@@ -6,34 +6,40 @@ from user_profile.models import Profile
 from offers_app.models import Offer, OfferDetail
 
 class OfferTests(APITestCase):
+    """
+    Test suite for Offer API endpoints.
+    
+    Tests CRUD operations, permissions, authentication, and business logic
+    for offers and offer details including proper error handling.
+    """
 
     def setUp(self):
-        # Erstelle einen Kunden-Benutzer und sein Profil
+        """
+        Set up test data including users, profiles, offers and offer details.
+        Creates customer and business users with authentication tokens.
+        """
         self.customer_user = User.objects.create_user(
             username='customer@test.com', email='customer@test.com', password='testpassword'
         )
         Profile.objects.create(user=self.customer_user, type='customer')
         self.customer_token = self.get_auth_token(self.customer_user, 'testpassword')
 
-        # Erstelle einen Business-Benutzer (Besitzer der Angebote) und sein Profil
         self.business_user = User.objects.create_user(
             username='business@test.com', email='business@test.com', password='testpassword'
         )
         Profile.objects.create(user=self.business_user, type='business')
         self.business_token = self.get_auth_token(self.business_user, 'testpassword')
 
-        # Erstelle einen anderen Business-Benutzer für die Filter-Tests
         self.other_business_user = User.objects.create_user(
             username='otherbusiness@test.com', email='otherbusiness@test.com', password='testpassword'
         )
         Profile.objects.create(user=self.other_business_user, type='business')
         self.other_business_token = self.get_auth_token(self.other_business_user, 'testpassword')
 
-        # Erstelle ein Beispielangebot und zugehörige Details
         self.offer = Offer.objects.create(
             user=self.business_user, 
-            title='Webseite erstellen', 
-            description='Erstellung einer responsiven Webseite'
+            title='Website Creation', 
+            description='Creation of a responsive website'
         )
         self.offer_detail_1 = OfferDetail.objects.create(
             offer=self.offer,
@@ -63,22 +69,31 @@ class OfferTests(APITestCase):
             offer_type='premium'
         )
 
-        # URLs für die Tests
         self.offer_list_url = reverse('offer-list')
         self.offer_detail_url = reverse('offer-detail', kwargs={'pk': self.offer.id})
 
     def get_auth_token(self, user, password):
-        # Hilfsmethode zur Anmeldung und zum Abrufen des Tokens
+        """
+        Authenticate user and return authentication token.
+        
+        Args:
+            user: User object to authenticate
+            password: User's password
+            
+        Returns:
+            str: Authentication token
+            
+        Raises:
+            Exception: If login fails
+        """
         response = self.client.post(reverse('login'), {'email': user.email, 'password': password})
         if response.status_code != status.HTTP_200_OK:
             raise Exception(f"Login failed for user {user.email}: {response.content.decode()}")
         return response.data['token']
 
-# --- Testfälle für OfferView (GET, POST) ---
-
     def test_authenticated_user_can_list_offers(self):
         """
-        Stellt sicher, dass ein authentifizierter Benutzer Angebote auflisten kann.
+        Ensures that an authenticated user can list offers.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         response = self.client.get(self.offer_list_url)
@@ -89,7 +104,7 @@ class OfferTests(APITestCase):
 
     def test_unauthenticated_user_can_list_offers(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer Angebote auflisten kann.
+        Ensures that an unauthenticated user can list offers.
         (IsAuthenticatedOrReadOnly)
         """
         self.client.credentials()
@@ -99,12 +114,12 @@ class OfferTests(APITestCase):
 
     def test_business_user_can_create_offer(self):
         """
-        Stellt sicher, dass ein Business-Benutzer ein Angebot erstellen kann.
+        Ensures that a business user can create an offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         data = {
-            'title': 'App Entwicklung',
-            'description': 'Entwicklung einer mobilen App',
+            'title': 'App Development',
+            'description': 'Development of a mobile app',
             'details': [
                 {'title': 'Basic', 'revisions': 2, 'delivery_time_in_days': 10, 'price': 1000.00, 'features': [], 'offer_type': 'basic'},
                 {'title': 'Pro', 'revisions': 5, 'delivery_time_in_days': 20, 'price': 2500.00, 'features': [], 'offer_type': 'pro'},
@@ -118,12 +133,12 @@ class OfferTests(APITestCase):
 
     def test_customer_cannot_create_offer(self):
         """
-        Stellt sicher, dass ein Kunden-Benutzer kein Angebot erstellen kann.
+        Ensures that a customer user cannot create an offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         data = {
-            'title': 'Neues Angebot',
-            'description': 'Beschreibung',
+            'title': 'New Offer',
+            'description': 'Description',
             'details': []
         }
         response = self.client.post(self.offer_list_url, data, format='json')
@@ -132,12 +147,12 @@ class OfferTests(APITestCase):
 
     def test_unauthenticated_user_cannot_create_offer(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer kein Angebot erstellen kann.
+        Ensures that an unauthenticated user cannot create an offer.
         """
         self.client.credentials()
         data = {
-            'title': 'Test Angebot',
-            'description': 'Beschreibung',
+            'title': 'Test Offer',
+            'description': 'Description',
             'details': []
         }
         response = self.client.post(self.offer_list_url, data, format='json')
@@ -145,12 +160,12 @@ class OfferTests(APITestCase):
 
     def test_create_offer_with_wrong_number_of_details_fails(self):
         """
-        Stellt sicher, dass die Erstellung fehlschlägt, wenn die Anzahl der Details nicht 3 beträgt.
+        Ensures that creation fails when the number of details is not 3.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         data = {
-            'title': 'Test Angebot',
-            'description': 'Beschreibung',
+            'title': 'Test Offer',
+            'description': 'Description',
             'details': [
                 {'title': 'Basic', 'revisions': 2, 'delivery_time_in_days': 10, 'price': 100.00, 'features': [], 'offer_type': 'basic'},
                 {'title': 'Pro', 'revisions': 5, 'delivery_time_in_days': 20, 'price': 200.00, 'features': [], 'offer_type': 'pro'}
@@ -160,11 +175,9 @@ class OfferTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error'], 'Ein Angebot muss genau 3 Details enthalten.')
 
-# --- Testfälle für OfferDetailView (GET, PATCH, PUT, DELETE) ---
-
     def test_owner_can_retrieve_offer_detail(self):
         """
-        Stellt sicher, dass der Besitzer ein spezifisches Angebot abrufen kann.
+        Ensures that the owner can retrieve a specific offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         response = self.client.get(self.offer_detail_url)
@@ -173,7 +186,7 @@ class OfferTests(APITestCase):
 
     def test_non_owner_can_retrieve_offer_detail(self):
         """
-        Stellt sicher, dass ein Nicht-Besitzer ein spezifisches Angebot abrufen kann.
+        Ensures that a non-owner can retrieve a specific offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         response = self.client.get(self.offer_detail_url)
@@ -182,7 +195,7 @@ class OfferTests(APITestCase):
 
     def test_unauthenticated_cannot_retrieve_offer_detail(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer ein Angebot nicht abrufen kann.
+        Ensures that an unauthenticated user cannot retrieve an offer.
         """
         self.client.credentials()
         response = self.client.get(self.offer_detail_url)
@@ -190,30 +203,30 @@ class OfferTests(APITestCase):
 
     def test_owner_can_update_offer(self):
         """
-        Stellt sicher, dass der Besitzer ein Angebot aktualisieren kann.
+        Ensures that the owner can update an offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         updated_data = {
-            'title': 'Webseite aktualisiert',
-            'description': 'Beschreibung aktualisiert',
+            'title': 'Website Updated',
+            'description': 'Description Updated',
         }
         response = self.client.patch(self.offer_detail_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.offer.refresh_from_db()
-        self.assertEqual(self.offer.title, 'Webseite aktualisiert')
+        self.assertEqual(self.offer.title, 'Website Updated')
 
     def test_non_owner_cannot_update_offer(self):
         """
-        Stellt sicher, dass ein Nicht-Besitzer ein Angebot nicht aktualisieren kann.
+        Ensures that a non-owner cannot update an offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
-        updated_data = {'title': 'Titel geändert'}
+        updated_data = {'title': 'Title Changed'}
         response = self.client.patch(self.offer_detail_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_owner_can_delete_offer(self):
         """
-        Stellt sicher, dass der Besitzer ein Angebot löschen kann.
+        Ensures that the owner can delete an offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.business_token}')
         response = self.client.delete(self.offer_detail_url)
@@ -223,18 +236,15 @@ class OfferTests(APITestCase):
 
     def test_non_owner_cannot_delete_offer(self):
         """
-        Stellt sicher, dass ein Nicht-Besitzer ein Angebot nicht löschen kann.
+        Ensures that a non-owner cannot delete an offer.
         """
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
         response = self.client.delete(self.offer_detail_url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-# --- Testfälle für OfferDetailObjView ---
-# Testet den spezifischen Endpunkt zum Abrufen eines einzelnen OfferDetail-Objekts.
-
     def test_authenticated_user_can_retrieve_offer_detail_object(self):
         """
-        Stellt sicher, dass ein authentifizierter Benutzer ein einzelnes OfferDetail-Objekt abrufen kann.
+        Ensures that an authenticated user can retrieve a single OfferDetail object.
         """
         url = reverse('offerdetail-detail', kwargs={'pk': self.offer_detail_1.id})
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.customer_token}')
@@ -245,7 +255,7 @@ class OfferTests(APITestCase):
         
     def test_unauthenticated_user_cannot_retrieve_offer_detail_object(self):
         """
-        Stellt sicher, dass ein nicht authentifizierter Benutzer kein einzelnes OfferDetail-Objekt abrufen kann.
+        Ensures that an unauthenticated user cannot retrieve a single OfferDetail object.
         """
         url = reverse('offerdetail-detail', kwargs={'pk': self.offer_detail_1.id})
         self.client.credentials()

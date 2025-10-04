@@ -9,10 +9,10 @@ from rest_framework.permissions import AllowAny
 
 class BaseInfoView(APIView):
     """
-    Ruft allgemeine Basisinformationen zur Plattform ab.
+    Retrieves general basic information about the platform.
     """
     permission_classes = [AllowAny]
-    authentication_classes = [] # <-- Fügen Sie diese Zeile hinzu, um die Authentifizierung zu deaktivieren
+    authentication_classes = []
     
     def get(self, request):
         try:

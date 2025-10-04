@@ -43,7 +43,7 @@ class LoginView(ObtainAuthToken):
     API view for user login.
     ...
     """
-    permission_classes = [AllowAny] # <-- Diese Zeile wurde hinzugefügt
+    permission_classes = [AllowAny]
     serializer_class = EmailAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):

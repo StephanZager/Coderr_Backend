@@ -15,12 +15,43 @@ from django_filters.rest_framework import DjangoFilterBackend, Filter
 
 
 class OfferPagination(PageNumberPagination):
+    """
+    Custom pagination class for offer listings.
+    
+    Provides paginated responses with configurable page sizes.
+    Default page size is 5 items per page, with user-configurable
+    page_size parameter up to a maximum of 100 items per page.
+    
+    Query Parameters:
+        page_size: Number of results per page (max 100)
+        page: Page number to retrieve
+    """
     page_size = 5
     page_size_query_param = 'page_size'
     max_page_size = 100
 
 
 class OfferView(generics.ListCreateAPIView):
+    """
+    API view for listing and creating offers.
+    
+    Provides comprehensive offer management with filtering, searching,
+    ordering, and pagination capabilities. Supports creating new offers
+    with exactly 3 detail packages (basic, standard, premium).
+    
+    Permissions:
+        GET: Any authenticated user or read-only access
+        POST: Only business users can create offers
+        
+    Filtering:
+        - creator_id: Filter by offer creator
+        - min_price: Minimum price filter
+        - max_delivery_time: Maximum delivery time filter
+        
+    Search: title, description fields
+    Ordering: updated_at, price fields
+    Pagination: 5 items per page (configurable)
+    """
     queryset = Offer.objects.all()
     filter_backends = [
         DjangoFilterBackend,
@@ -43,6 +74,18 @@ class OfferView(generics.ListCreateAPIView):
         return OfferSerializer
 
     def create(self, request, *args, **kwargs):
+        """
+        Create a new offer with exactly 3 detail packages.
+        
+        Validates that exactly 3 details are provided and creates
+        the offer with associated detail objects.
+        
+        Returns:
+            Response: Created offer data with 201 status
+            
+        Raises:
+            400: If not exactly 3 details provided
+        """
         data = request.data
         details_data = data.get('details', [])
         if len(details_data) != 3:
