@@ -13,7 +13,10 @@ class ReviewListView(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['business_user', 'reviewer']
+    filterset_fields = {
+        'business_user': ['exact'],
+        'reviewer': ['exact'],
+    }
     ordering_fields = ['updated_at', 'rating']
 
     def get_permissions(self):
