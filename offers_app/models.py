@@ -7,6 +7,8 @@ class Offer(models.Model):
     title = models.CharField(max_length=25, default='', blank=True)
     image = models.ImageField(upload_to='offer_images/', null=True, blank=True)
     description = models.TextField(max_length=255, default='', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class OfferDetail(models.Model):
     offer = models.ForeignKey(Offer, related_name='details', on_delete=models.CASCADE)
