@@ -20,13 +20,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'password', 'repeated_password', 'type']
         extra_kwargs = {'password': {'write_only': True}}
-
-    def validate_username(self, value):
-        if ' ' not in value.strip():
-            raise serializers.ValidationError(
-                "The name must contain a first and last name, separated by a space")
-        return value
-
+    
     def validate(self, data):
         if data['password'] != data['repeated_password']:
             raise serializers.ValidationError(

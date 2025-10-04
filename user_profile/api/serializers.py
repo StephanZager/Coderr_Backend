@@ -14,7 +14,18 @@ class ProfileSerializer(serializers.ModelSerializer):
     type = serializers.CharField()
 
     def get_username(self, obj):
-        return f"{obj.user.first_name}_{obj.user.last_name}".lower()
+        """Generate username from first_name and last_name. Only add underscore if both names exist."""
+        first_name = obj.user.first_name.lower()
+        last_name = obj.user.last_name.lower()
+        
+        if first_name and last_name:
+            return f"{first_name}_{last_name}"
+        elif first_name:
+            return first_name
+        elif last_name:
+            return last_name
+        else:
+            return ""
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)
@@ -43,6 +54,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'email',
             'created_at',
         ]
+       
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -52,7 +64,18 @@ class CustomerSerializer(serializers.ModelSerializer):
     uploaded_at = serializers.DateTimeField(source='user.date_joined', read_only=True)
 
     def get_username(self, obj):
-        return f"{obj.user.first_name}_{obj.user.last_name}".lower()
+        """Generate username from first_name and last_name. Only add underscore if both names exist."""
+        first_name = obj.user.first_name.lower()
+        last_name = obj.user.last_name.lower()
+        
+        if first_name and last_name:
+            return f"{first_name}_{last_name}"
+        elif first_name:
+            return first_name
+        elif last_name:
+            return last_name
+        else:
+            return ""
 
     class Meta:
         model = Profile
@@ -72,7 +95,18 @@ class BusinessSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(source='user.last_name')
 
     def get_username(self, obj):
-        return f"{obj.user.first_name}_{obj.user.last_name}".lower()
+        """Generate username from first_name and last_name. Only add underscore if both names exist."""
+        first_name = obj.user.first_name.lower()
+        last_name = obj.user.last_name.lower()
+        
+        if first_name and last_name:
+            return f"{first_name}_{last_name}"
+        elif first_name:
+            return first_name
+        elif last_name:
+            return last_name
+        else:
+            return ""
 
     class Meta:
         model = Profile
