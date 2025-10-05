@@ -73,30 +73,12 @@ class OfferView(generics.ListCreateAPIView):
             return OfferListSerializer
         return OfferSerializer
 
-    def create(self, request, *args, **kwargs):
+    def perform_create(self, serializer):
         """
-        Create a new offer with exactly 3 detail packages.
-        
-        Validates that exactly 3 details are provided and creates
-        the offer with associated detail objects.
-        
-        Returns:
-            Response: Created offer data with 201 status
-            
-        Raises:
-            400: If not exactly 3 details provided
+        Set the user when creating an offer.
+        The OfferSerializer will handle creating the details.
         """
-        data = request.data
-        details_data = data.get('details', [])
-        if len(details_data) != 3:
-            return Response({"error": "Ein Angebot muss genau 3 Details enthalten."}, status=status.HTTP_400_BAD_REQUEST)
-        offer_serializer = OfferSerializer(data=data)
-        offer_serializer.is_valid(raise_exception=True)
-        offer = offer_serializer.save(user=request.user)
-        for detail in details_data:
-            OfferDetail.objects.create(offer=offer, **detail)
-        response_serializer = OfferSerializer(offer)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        serializer.save(user=self.request.user)
 
 
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):

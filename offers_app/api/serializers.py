@@ -90,6 +90,17 @@ class OfferListSerializer(serializers.ModelSerializer):
 
 
 class OfferDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for offer details with offer_type validation.
+    """
+    OFFER_TYPE_CHOICES = [
+        ('basic', 'Basic'),
+        ('standard', 'Standard'),
+        ('premium', 'Premium')
+    ]
+    
+    offer_type = serializers.ChoiceField(choices=OFFER_TYPE_CHOICES)
+
     class Meta:
         model = OfferDetail
         fields = [
@@ -199,7 +210,13 @@ class OfferUpdateSerializer(serializers.ModelSerializer):
 
 
 class OfferSerializer(serializers.ModelSerializer):
-    details = OfferDetailSerializer(many=True, read_only=True)
+    """
+    Serializer for creating offers with exactly 3 details (basic, standard, premium).
+    
+    Validates that all required offer types are present and creates the offer
+    with its nested details in a single transaction.
+    """
+    details = OfferDetailSerializer(many=True)
 
     class Meta:
         model = Offer
@@ -211,5 +228,52 @@ class OfferSerializer(serializers.ModelSerializer):
             'details',
         ]
 
+    def validate_details(self, value):
+        """
+        Validate that exactly 3 details are provided with correct offer_types.
+        
+        Args:
+            value: List of detail dictionaries
+            
+        Returns:
+            Validated details list
+            
+        Raises:
+            ValidationError: If not exactly 3 details or missing required types
+        """
+        if len(value) != 3:
+            raise serializers.ValidationError("Ein Angebot muss genau 3 Details enthalten.")
+        
+        required_types = {'basic', 'standard', 'premium'}
+        provided_types = {detail.get('offer_type') for detail in value}
+        
+        if provided_types != required_types:
+            raise serializers.ValidationError(
+                "Die Details müssen genau die offer_types 'basic', 'standard' und 'premium' enthalten."
+            )
+        
+        return value
+
     def create(self, validated_data):
-        return Offer.objects.create(**validated_data)
+        """
+        Create offer with nested details.
+        
+        Args:
+            validated_data: Dictionary containing offer and details data
+            
+        Returns:
+            Created Offer instance with all details
+        """
+        details_data = validated_data.pop('details')
+        
+        # Set user from request context
+        validated_data['user'] = self.context['request'].user
+        
+        # Create offer
+        offer = Offer.objects.create(**validated_data)
+        
+        # Create details
+        for detail_data in details_data:
+            OfferDetail.objects.create(offer=offer, **detail_data)
+        
+        return offer

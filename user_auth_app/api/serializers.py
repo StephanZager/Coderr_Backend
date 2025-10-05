@@ -29,7 +29,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'error': 'A user with this email already exists'}
             )
-        # Prüfe ob Username bereits existiert
+        
         if User.objects.filter(username=data['username']).exists():
             raise serializers.ValidationError(
                 {'error': 'A user with this username already exists'}
@@ -43,16 +43,12 @@ class RegistrationSerializer(serializers.ModelSerializer):
         """
         validated_data.pop('repeated_password')
         user_type = validated_data.pop('type')  
-        
-        # Behalte den originalen Username
+    
         original_username = validated_data['username']
-        
-        # Erstelle User mit dem originalen Username
         user = User.objects.create_user(**validated_data)
         
         Profile.objects.create(user=user, type=user_type)
 
-        # Extrahiere Namen aus dem Username für first_name/last_name
         if original_username:
             try:
                 first_name, last_name = original_username.split(' ', 1)
