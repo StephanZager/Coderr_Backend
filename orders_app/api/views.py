@@ -83,6 +83,14 @@ class OrderListView(generics.ListCreateAPIView):
         offer_detail_id = request.data.get('offer_detail_id')
         if not offer_detail_id:
             return Response({"error": "Invalid request data. 'offer_detail_id'."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            offer_detail_id = int(offer_detail_id)
+        except (ValueError, TypeError):
+             return Response(
+                 {"error": "Invalid offer_detail_id format. Must be a number."}, 
+                 status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             offer_detail = OfferDetail.objects.get(id=offer_detail_id)

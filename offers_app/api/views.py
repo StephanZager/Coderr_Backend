@@ -12,6 +12,7 @@ from ..filters import OfferFilter
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .permissions import IsBusinessUser, IsOwner
 from django_filters.rest_framework import DjangoFilterBackend, Filter
+import django_filters
 
 
 class OfferPagination(PageNumberPagination):
@@ -31,6 +32,21 @@ class OfferPagination(PageNumberPagination):
     max_page_size = 100
 
 
+
+
+class OfferFilter(django_filters.FilterSet):
+    creator_id = django_filters.NumberFilter(field_name='user__id')
+    min_price = django_filters.NumberFilter(field_name='details__price', lookup_expr='gte')
+    max_delivery_time = django_filters.NumberFilter(field_name='details__delivery_time_in_days', lookup_expr='lte')
+
+    class Meta:
+        model = Offer
+        fields = ['creator_id']
+        
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        return queryset.distinct()
+
 class OfferView(generics.ListCreateAPIView):
     """
     API view for listing and creating offers.
@@ -49,7 +65,7 @@ class OfferView(generics.ListCreateAPIView):
         - max_delivery_time: Maximum delivery time filter
         
     Search: title, description fields
-    Ordering: updated_at, price fields
+    Ordering: updated_at, created_at, title fields  # <-- Korrigiert
     Pagination: 5 items per page (configurable)
     """
     queryset = Offer.objects.all()
@@ -60,7 +76,7 @@ class OfferView(generics.ListCreateAPIView):
     ]
     filterset_class = OfferFilter
     search_fields = ['title', 'description']
-    ordering_fields = ['updated_at', 'price']
+    ordering_fields = ['updated_at', 'created_at', 'title']  # <-- 'price' entfernt
     pagination_class = OfferPagination
 
     def get_permissions(self):
