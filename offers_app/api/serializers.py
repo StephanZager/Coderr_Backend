@@ -176,6 +176,34 @@ class OfferUpdateSerializer(serializers.ModelSerializer):
             'details',
         ]
 
+    def validate_details(self, value):
+        """
+        Validate that each detail contains offer_type when updating.
+        
+        Args:
+            value: List of detail dictionaries
+            
+        Returns:
+            Validated details list
+            
+        Raises:
+            ValidationError: If offer_type is missing in any detail
+        """
+        if value:  
+            for detail in value:
+                if 'offer_type' not in detail or not detail['offer_type']:
+                    raise serializers.ValidationError(
+                        "Invalid request data or incomplete details. 'offer_type' is required for every detail."
+                    )
+                
+                valid_types = ['basic', 'standard', 'premium']
+                if detail['offer_type'] not in valid_types:
+                    raise serializers.ValidationError(
+                        f"Invalid offer_type: '{detail['offer_type']}'. Allowed values: {valid_types}"
+                    )
+        
+        return value
+
     def update(self, instance, validated_data):
         """
         Update offer instance with validated data including nested details.
@@ -205,6 +233,8 @@ class OfferUpdateSerializer(serializers.ModelSerializer):
                         for key, val in detail_data.items():
                             setattr(detail_obj, key, val)
                         detail_obj.save()
+                    else:
+                        OfferDetail.objects.create(offer=instance, **detail_data)
         
         return instance
 

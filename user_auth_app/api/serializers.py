@@ -30,7 +30,9 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 {'error': 'A user with this email already exists'}
             )
         
-        if User.objects.filter(username=data['username']).exists():
+        # Username in Kleinbuchstaben für die Duplikat-Prüfung
+        username_lower = data['username'].lower()
+        if User.objects.filter(username=username_lower).exists():
             raise serializers.ValidationError(
                 {'error': 'A user with this username already exists'}
             )
@@ -45,10 +47,15 @@ class RegistrationSerializer(serializers.ModelSerializer):
         user_type = validated_data.pop('type')  
     
         original_username = validated_data['username']
+        
+        # Username in Kleinbuchstaben umwandeln vor dem Speichern
+        validated_data['username'] = original_username.lower()
+        
         user = User.objects.create_user(**validated_data)
         
         Profile.objects.create(user=user, type=user_type)
 
+        # Verwende den originalen Username für first_name/last_name Extraktion
         if original_username:
             try:
                 first_name, last_name = original_username.split(' ', 1)
