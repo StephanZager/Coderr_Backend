@@ -11,5 +11,6 @@ class Profile(models.Model):
     tel = models.CharField(max_length=15, default='', blank=True)
     description= models.TextField(max_length=255, default='', blank=True)
     working_hours = models.CharField(max_length=20, default='', blank=True)
+    original_username = models.CharField(max_length=150, blank=True, null=True)
 
 admin.site.register(Profile)

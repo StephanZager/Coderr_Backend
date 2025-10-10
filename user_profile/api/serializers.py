@@ -14,18 +14,16 @@ class ProfileSerializer(serializers.ModelSerializer):
     type = serializers.CharField()
 
     def get_username(self, obj):
-        """Generate username from first_name and last_name. Only add underscore if both names exist."""
-        first_name = obj.user.first_name.lower()
-        last_name = obj.user.last_name.lower()
-        
-        if first_name and last_name:
-            return f"{first_name}_{last_name}"
-        elif first_name:
-            return first_name
-        elif last_name:
-            return last_name
-        else:
-            return ""
+     """Generate username in lowercase for profile views"""
+     first_name = obj.user.first_name.lower() if obj.user.first_name else ""
+     last_name = obj.user.last_name.lower() if obj.user.last_name else ""
+    
+     if first_name and last_name:
+        return f"{first_name}_{last_name}"
+     elif first_name:
+        return first_name
+     else:
+        return obj.user.username 
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)

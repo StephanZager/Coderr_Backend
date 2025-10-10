@@ -30,7 +30,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 {'error': 'A user with this email already exists'}
             )
         
-        # Username in Kleinbuchstaben für die Duplikat-Prüfung
+        
         username_lower = data['username'].lower()
         if User.objects.filter(username=username_lower).exists():
             raise serializers.ValidationError(
@@ -40,22 +40,24 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Create and return a new User instance, keeping the original username.
-        Stores the username as-is and extracts first_name/last_name from it.
+        Create and return a new User instance.
+        Stores username in lowercase, but saves original in Profile.
         """
         validated_data.pop('repeated_password')
         user_type = validated_data.pop('type')  
     
         original_username = validated_data['username']
         
-        # Username in Kleinbuchstaben umwandeln vor dem Speichern
+        
         validated_data['username'] = original_username.lower()
         
         user = User.objects.create_user(**validated_data)
         
-        Profile.objects.create(user=user, type=user_type)
+        
+        profile = Profile.objects.create(user=user, type=user_type)
+        profile.original_username = original_username  
+        profile.save()
 
-        # Verwende den originalen Username für first_name/last_name Extraktion
         if original_username:
             try:
                 first_name, last_name = original_username.split(' ', 1)
@@ -67,7 +69,42 @@ class RegistrationSerializer(serializers.ModelSerializer):
             
             user.save(update_fields=['first_name', 'last_name'])
         
+        
+        user._original_username = original_username
         return user
+    
+    def to_representation(self, instance):
+        """
+        Return original username in response
+        """
+        data = super().to_representation(instance)
+        
+        
+        original_username = None
+        
+        
+        if hasattr(instance, '_original_username'):
+            original_username = instance._original_username
+        else:
+            
+            try:
+                profile = Profile.objects.get(user=instance)
+                if hasattr(profile, 'original_username') and profile.original_username:
+                    original_username = profile.original_username
+            except Profile.DoesNotExist:
+                pass
+        
+        
+        if not original_username and instance.first_name:
+            if instance.last_name:
+                original_username = f"{instance.first_name} {instance.last_name}"
+            else:
+                original_username = instance.first_name
+        
+        if original_username:
+            data['username'] = original_username
+        
+        return data
 
 class EmailAuthTokenSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -80,13 +117,16 @@ class EmailAuthTokenSerializer(serializers.Serializer):
         username = data.get('username')
         password = data.get('password')
 
+        
+        username_lower = username.lower()
+
         try:
-            user = User.objects.get(username=username)
+            user = User.objects.get(username=username_lower)
         except User.DoesNotExist:
             raise serializers.ValidationError(
                 "User with this username does not exist")
             
-        user = authenticate(username=username, password=password)
+        user = authenticate(username=username_lower, password=password)  
 
         if not user:
             raise serializers.ValidationError("Invalid login credentials.")
