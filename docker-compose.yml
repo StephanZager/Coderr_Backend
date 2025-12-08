@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # Service für die PostgreSQL-Datenbank
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=coderr_db
+      - POSTGRES_USER=coderr_user
+      - POSTGRES_PASSWORD=coderr_password
+    ports:
+      - "5432:5432"
+
+
+  web:
+    build: .
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SECRET_KEY=django-insecure-dev-key-change-for-prod
+      - DEBUG=1
+      - DB_NAME=coderr_db
+      - DB_USER=coderr_user
+      - DB_PASSWORD=coderr_password
+      - DB_HOST=db 
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
